@@ -1,0 +1,451 @@
+-- [[ ART HUB : MASTER PRECISION V12 - FIX STABLE EDITION ]] --
+local ScreenGui = Instance.new("ScreenGui")
+local Main = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local OpenButton = Instance.new("TextButton")
+local CloseButton = Instance.new("TextButton")
+
+-- เซฟโครงสร้างป้องกันการ Error บนตัวรันบางตัว
+local success, err = pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+end)
+if not success then
+    ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+ScreenGui.ResetOnSpawn = false
+
+-- MAIN UI
+Main.Name = "Main"
+Main.Parent = ScreenGui
+Main.BackgroundTransparency = 1
+Main.Position = UDim2.new(0.3,0,0.2,0)
+Main.Size = UDim2.new(0,360,0,400)
+Main.Active = true
+Main.Draggable = true
+
+-- รูปพื้นหลังตอนเปิด UI
+local BG = Instance.new("ImageLabel")
+BG.Parent = Main
+BG.Size = UDim2.new(1,0,1,0)
+BG.Position = UDim2.new(0,0,0,0)
+BG.BackgroundTransparency = 1
+BG.Image = "rbxassetid://98495174008043"
+BG.ScaleType = Enum.ScaleType.Stretch
+BG.ZIndex = 0
+
+local BGCORNER = Instance.new("UICorner")
+BGCORNER.Parent = BG
+BGCORNER.CornerRadius = UDim.new(0,15)
+
+-- เส้นขอบ UI หลัก
+local Stroke = Instance.new("UIStroke")
+Stroke.Parent = Main
+Stroke.Color = Color3.fromRGB(140,0,255)
+Stroke.Thickness = 3
+
+-- TITLE (หัวข้อ)
+Title.Parent = Main
+Title.BackgroundColor3 = Color3.fromRGB(255,255,255)
+Title.BackgroundTransparency = 0.2
+Title.Size = UDim2.new(1,0,0,50)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "ART HUB V12"
+Title.TextColor3 = Color3.fromRGB(140,0,255)
+Title.TextSize = 35
+
+-- ปุ่มปิด UI
+CloseButton.Parent = Main
+CloseButton.Size = UDim2.new(0,35,0,35)
+CloseButton.Position = UDim2.new(1,-45,0,7)
+CloseButton.Text = "-"
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.TextSize = 30
+CloseButton.BackgroundColor3 = Color3.fromRGB(140,0,255)
+CloseButton.TextColor3 = Color3.fromRGB(255,255,255)
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.Parent = CloseButton
+CloseCorner.CornerRadius = UDim.new(1,0)
+
+-- ปุ่มเปิด UI
+OpenButton.Parent = ScreenGui
+OpenButton.Size = UDim2.new(0,60,0,60)
+OpenButton.Position = UDim2.new(0,20,0.5,0)
+OpenButton.Text = ""
+OpenButton.BackgroundTransparency = 1
+OpenButton.Visible = false
+
+-- รูปตอนปิด UI
+local OpenImage = Instance.new("ImageLabel")
+OpenImage.Parent = OpenButton
+OpenImage.Size = UDim2.new(1,0,1,0)
+OpenImage.BackgroundTransparency = 1
+OpenImage.Image = "rbxthumb://type=Asset&id=133337806226605&w=420&h=420"
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.Parent = OpenImage
+OpenCorner.CornerRadius = UDim.new(1,0)
+
+-- เปิด/ปิด UI
+CloseButton.MouseButton1Click:Connect(function()
+	Main.Visible = false
+	OpenButton.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+	Main.Visible = true
+	OpenButton.Visible = false
+end)
+
+-- =================================================================
+-- [[ SCROLLING FRAME SYSTEM (ระบบพื้นที่เลื่อนฟังก์ชัน) ]]
+-- =================================================================
+local ScrollContainer = Instance.new("ScrollingFrame")
+ScrollContainer.Parent = Main
+ScrollContainer.Position = UDim2.new(0, 10, 0, 60)
+ScrollContainer.Size = UDim2.new(1, -20, 1, -70)
+ScrollContainer.BackgroundTransparency = 1
+ScrollContainer.BorderSizePixel = 0
+ScrollContainer.ScrollBarThickness = 6
+ScrollContainer.ScrollBarImageColor3 = Color3.fromRGB(140,0,255)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 550)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollContainer
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 15)
+
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 25)
+end)
+
+-- =================================================================
+-- [[ UI CREATION TEMPLATES (ฟังก์ชันสร้างส่วนประกอบ UI) ]]
+-- =================================================================
+
+function CreateToggle(name, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Parent = ScrollContainer
+    Frame.Size = UDim2.new(1, -10, 0, 45)
+    Frame.BackgroundTransparency = 1
+
+	local Text = Instance.new("TextLabel")
+	Text.Parent = Frame
+	Text.BackgroundTransparency = 1
+	Text.Position = UDim2.new(0,10,0,0)
+	Text.Size = UDim2.new(0,220,1,0)
+	Text.Font = Enum.Font.SourceSansBold
+	Text.Text = name
+	Text.TextColor3 = Color3.fromRGB(255,255,255)
+	Text.TextSize = 22
+	Text.TextXAlignment = Enum.TextXAlignment.Left
+
+	local Toggle = Instance.new("TextButton")
+	Toggle.Parent = Frame
+	Toggle.Position = UDim2.new(1,-55,0,2)
+	Toggle.Size = UDim2.new(0,45,0,40)
+	Toggle.Text = ""
+	Toggle.BackgroundColor3 = Color3.fromRGB(255,255,255)
+
+	local Corner = Instance.new("UICorner")
+	Corner.Parent = Toggle
+	Corner.CornerRadius = UDim.new(0,8)
+
+	local enabled = false
+	Toggle.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		if enabled then
+			Toggle.BackgroundColor3 = Color3.fromRGB(140,0,255)
+		else
+			Toggle.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		end
+		if callback then pcall(callback, enabled) end
+	end)
+end
+
+function CreateDarkButton(name, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Parent = ScrollContainer
+    Frame.Size = UDim2.new(1, -10, 0, 45)
+    Frame.BackgroundTransparency = 1
+
+	local Button = Instance.new("TextButton")
+	Button.Parent = Frame
+	Button.Position = UDim2.new(0,10,0,2)
+	Button.Size = UDim2.new(1,-20,0,40)
+	Button.BackgroundColor3 = Color3.fromRGB(65, 15, 110)
+	Button.Font = Enum.Font.SourceSansBold
+	Button.Text = name
+	Button.TextColor3 = Color3.fromRGB(230,230,230)
+	Button.TextSize = 20
+
+	local Corner = Instance.new("UICorner")
+	Corner.Parent = Button
+	Corner.CornerRadius = UDim.new(0,8)
+
+	local StrokeBtn = Instance.new("UIStroke")
+	StrokeBtn.Parent = Button
+	StrokeBtn.Color = Color3.fromRGB(120,0,220)
+	StrokeBtn.Thickness = 1
+
+	Button.MouseButton1Click:Connect(function()
+		if callback then pcall(callback) end
+	end)
+end
+
+function CreateSpeedSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Parent = ScrollContainer
+    Frame.Size = UDim2.new(1, -10, 0, 65)
+    Frame.BackgroundTransparency = 1
+
+	local Text = Instance.new("TextLabel")
+	Text.Parent = Frame
+	Text.BackgroundTransparency = 1
+	Text.Position = UDim2.new(0,10,0,0)
+	Text.Size = UDim2.new(0,160,0,30)
+	Text.Font = Enum.Font.SourceSansBold
+	Text.Text = name
+	Text.TextColor3 = Color3.fromRGB(255,255,255)
+	Text.TextSize = 22
+	Text.TextXAlignment = Enum.TextXAlignment.Left
+
+	local ValueText = Instance.new("TextLabel")
+	ValueText.Parent = Frame
+	ValueText.BackgroundTransparency = 1
+	ValueText.Position = UDim2.new(0,10,0,30)
+	ValueText.Size = UDim2.new(0,160,0,25)
+	ValueText.Font = Enum.Font.SourceSansBold
+	ValueText.Text = "ระดับ: " .. tostring(default)
+	ValueText.TextColor3 = Color3.fromRGB(180,140,255)
+	ValueText.TextSize = 18
+	ValueText.TextXAlignment = Enum.TextXAlignment.Left
+
+	local SliderFrame = Instance.new("TextButton")
+	SliderFrame.Parent = Frame
+	SliderFrame.Position = UDim2.new(0,165,0,25)
+	SliderFrame.Size = UDim2.new(1,-180,0,10)
+	SliderFrame.BackgroundColor3 = Color3.fromRGB(80,80,80)
+	SliderFrame.Text = ""
+
+	local SliderFill = Instance.new("Frame")
+	SliderFill.Parent = SliderFrame
+	SliderFill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+	SliderFill.BackgroundColor3 = Color3.fromRGB(140,0,255)
+
+	local function UpdateSlider()
+		local mouse = game.Players.LocalPlayer:GetMouse()
+		local percentage = math.clamp((mouse.X - SliderFrame.AbsolutePosition.X) / SliderFrame.AbsoluteSize.X, 0, 1)
+		SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+		local value = math.round(min + (max - min) * percentage)
+		ValueText.Text = "ระดับ: " .. tostring(value)
+		if callback then pcall(callback, value) end
+	end
+
+	local isSliding = false
+	SliderFrame.MouseButton1Down:Connect(function()
+		isSliding = true
+		UpdateSlider()
+	end)
+
+	game:GetService("UserInputService").InputChanged:Connect(function(input)
+		if isSliding and input.UserInputType == Enum.UserInputType.MouseMovement then
+			UpdateSlider()
+		end
+	end)
+
+	game:GetService("UserInputService").InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			isSliding = false
+		end
+	end)
+end
+
+-- =================================================================
+-- [[ CORE LOGIC FUNCTIONS (ระบบการทำงานเบื้องหลัง) ]]
+-- =================================================================
+
+local Settings = {
+    MasterLoop = false,
+    ESP = false,
+    InfJump = false,
+    Noclip = false,
+    WalkSpeed = 16
+}
+
+local lp = game.Players.LocalPlayer
+
+-- ระบบเดินทะลุกำแพง (Noclip) ปรับปรุงให้เสถียรผ่าน Heartbeat
+game:GetService("RunService").Heartbeat:Connect(function()
+    if Settings.Noclip and lp.Character then
+        for _, v in pairs(lp.Character:GetChildren()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- ระบบล็อกความเร็วตลอดเวลา (กันโดนเกมรีเซ็ตกลับค่าเดิม)
+game:GetService("RunService").RenderStepped:Connect(function()
+    if lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        if lp.Character.Humanoid.WalkSpeed ~= Settings.WalkSpeed then
+            lp.Character.Humanoid.WalkSpeed = Settings.WalkSpeed
+        end
+    end
+end)
+
+-- ระบบกระโดดไม่จำกัด (Infinite Jump)
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if Settings.InfJump and lp.Character then
+        local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- ระบบมองทะลุชื่อ + กรอบน้ำเงิน (Box ESP & Name)
+local function CreateESP(plr)
+    task.spawn(function()
+        while task.wait(0.5) do
+            if plr == lp then break end
+            local char = plr.Character
+            
+            if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+                local highlight = char:FindFirstChild("ArtHub_BlueBox") or Instance.new("Highlight", char)
+                highlight.Name = "ArtHub_BlueBox"
+                highlight.Enabled = Settings.ESP
+                highlight.FillTransparency = 1 
+                highlight.OutlineColor = Color3.fromRGB(0, 120, 255) 
+                highlight.OutlineTransparency = 0 
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local bbg = head:FindFirstChild("ArtHub_NameUI") or Instance.new("BillboardGui", head)
+                    bbg.Name = "ArtHub_NameUI"
+                    bbg.Adornee = head
+                    bbg.Size = UDim2.new(0, 200, 0, 30)
+                    bbg.StudsOffset = Vector3.new(0, 2.5, 0)
+                    bbg.AlwaysOnTop = true
+                    bbg.Enabled = Settings.ESP
+
+                    local textLabel = bbg:FindFirstChild("PlayerName") or Instance.new("TextLabel", bbg)
+                    textLabel.Name = "PlayerName"
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.BackgroundTransparency = 1
+                    textLabel.Text = plr.Name
+                    textLabel.Font = Enum.Font.SourceSansBold
+                    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) 
+                    textLabel.TextSize = 18
+                    textLabel.TextStrokeTransparency = 0 
+                    textLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+                end
+            end
+
+            if not Settings.ESP and plr.Character then
+                if plr.Character:FindFirstChild("ArtHub_BlueBox") then
+                    plr.Character.ArtHub_BlueBox.Enabled = false
+                end
+                if plr.Character:FindFirstChild("Head") and plr.Character.Head:FindFirstChild("ArtHub_NameUI") then
+                    plr.Character.Head.ArtHub_NameUI.Enabled = false
+                end
+            end
+        end
+    end)
+end
+
+for _, player in pairs(game.Players:GetPlayers()) do CreateESP(player) end
+game.Players.PlayerAdded:Connect(CreateESP)
+
+-- =================================================================
+-- [[ สั่งสร้างปุ่มฟังก์ชันลงบนหน้าจอ UI ]]
+-- =================================================================
+
+-- 1. ปุ่มวาร์ปไปหาฮอ
+CreateDarkButton("🚁 วาร์ปไปหาเฮลิคอปเตอร์", function()
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local found = false
+    for _, v in pairs(game.Workspace:GetDescendants()) do
+        if v:IsA("Model") and (v.Name:lower():find("heli") or v.Name:lower():find("chopper")) then
+            local p = v:FindFirstChildWhichIsA("BasePart", true)
+            if p then
+                hrp.Velocity = Vector3.new(0,0,0)
+                hrp.CFrame = p.CFrame * CFrame.new(0, 5, 0)
+                found = true
+                break
+            end
+        end
+    end
+end)
+
+-- 2. ระบบเดินทะลุกำแพง
+CreateToggle("🧱 เปิดระบบเดินทะลุกำแพง", function(v)
+    Settings.Noclip = v
+end)
+
+-- 3. สไลเดอร์ปรับความเร็วตัวละคร
+CreateSpeedSlider("⚡ ความเร็วตัวละคร", 16, 500, 16, function(v)
+    Settings.WalkSpeed = v
+end)
+
+-- 4. ระบบฟาร์มเงินอัตโนมัติ (ลูปกวาดตังค์ 2.5 วิ)
+CreateToggle("⛓️ เปิดระบบฟาร์มเงินอัตโนมัติ", function(v)
+    Settings.MasterLoop = v
+    if Settings.MasterLoop then
+        task.spawn(function()
+            while Settings.MasterLoop do
+                pcall(function()
+                    local char = lp.Character
+                    local tool = char:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool")
+                    
+                    if tool and char:FindFirstChild("HumanoidRootPart") then
+                        if tool.Parent ~= char then tool.Parent = char end
+                        
+                        for _, player in pairs(game.Players:GetPlayers()) do
+                            if not Settings.MasterLoop then break end
+                            if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                local targetHRP = player.Character.HumanoidRootPart
+                                local targetHum = player.Character:FindFirstChild("Humanoid")
+                                
+                                if targetHum and targetHum.Health > 0 then
+                                    char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                                    char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 0.2)
+                                    
+                                    for _, r in pairs(tool:GetDescendants()) do
+                                        if r:IsA("RemoteEvent") then r:FireServer(targetHum) end
+                                    end
+                                    
+                                    task.wait(2.5)
+                                    
+                                    local radius = 8
+                                    for i = 1, 10 do
+                                        if not Settings.MasterLoop then break end
+                                        local angle = i * (math.pi * 2 / 10)
+                                        char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                                        task.wait(0.03)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
+
+-- 5. เปิด/ปิดกระโดดไม่จำกัด
+CreateToggle("🦘 เปิดระบบกระโดดไม่จำกัด", function(v)
+    Settings.InfJump = v
+end)
+
+-- 6. มองชื่อผู้เล่น + กรอบน้ำเงิน (ESP)
+CreateToggle("👁️ เปิดมองทะลุ (กรอบน้ำเงิน + ชื่อ)", function(v)
+    Settings.ESP = v
+end)
