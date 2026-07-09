@@ -1,0 +1,134 @@
+--// เช็คโหลดเกม
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
+
+--// การตั้งค่าระบบ
+local Settings = {
+    Aimbot = false,
+    ESP = false,
+    WallCheck = true,
+    TeamCheck = true,
+    MonsterLock = false,
+    Smoothness = 0.2,
+    LockPart = "Head"
+}
+
+--// ตั้งค่าธีมสี
+WindUI:AddTheme({
+    Name = "ART_PRO_THEME",
+    Accent = Color3.fromRGB(255, 60, 60),
+    Background = Color3.fromRGB(20, 20, 25),
+    Outline = Color3.fromRGB(40, 40, 50),
+    Text = Color3.fromRGB(255, 255, 255),
+    Icon = Color3.fromRGB(255, 230, 80)
+})
+WindUI:SetTheme("ART_PRO_THEME")
+
+--// สร้างหน้าต่าง UI
+local Window = WindUI:CreateWindow({
+    Title = "ART HUB | SURVIVAL PRO",
+    Icon = "rbxassetid://81609873060038",
+    Theme = "ART_PRO_THEME",
+    Size = UDim2.fromOffset(600, 450),
+    User = { Enabled = true, Name = LP.Name, Image = "rbxthumb://type=Asset&id=81609873060038&w=420&h=420" }
+})
+
+--// สร้าง Tabs
+local T_Combat = Window:Tab({Title = "ระบบต่อสู้", Icon = "target"})
+local T_Visuals = Window:Tab({Title = "ระบบมองเห็น", Icon = "eye"})
+local T_Misc = Window:Tab({Title = "ระบบเสริม", Icon = "settings"})
+local T_Scripts = Window:Tab({Title = "Scripts", Icon = "code"}) -- Tab ใหม่
+
+--// --- ระบบเบื้องหลัง (Aimbot Logic) ---
+-- [ฟังก์ชันคงเดิม]
+local function IsVisible(targetPart)
+    if not Settings.WallCheck then return true end
+    local char = LP.Character
+    if not char then return false end
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rayParams.FilterDescendantsInstances = {char, camera}
+    local rayResult = game.Workspace:Raycast(camera.CFrame.Position, (targetPart.Position - camera.CFrame.Position).Unit * 1000, rayParams)
+    return rayResult == nil or rayResult.Instance:IsDescendantOf(targetPart.Parent)
+end
+
+local function GetTarget()
+    local target = nil
+    local dist = math.huge
+    local mouse = LP:GetMouse()
+    local targets = {}
+    
+    if not Settings.MonsterLock then
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LP and v.Character and v.Character:FindFirstChild(Settings.LockPart) then
+                if Settings.TeamCheck and v.Team == LP.Team then continue end
+                table.insert(targets, v.Character)
+            end
+        end
+    end
+
+    if Settings.MonsterLock then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild(Settings.LockPart) then
+                if not Players:GetPlayerFromCharacter(v) then
+                    table.insert(targets, v)
+                end
+            end
+        end
+    end
+
+    for _, char in pairs(targets) do
+        local hum = char:FindFirstChild("Humanoid")
+        if hum and hum.Health > 0 then
+            local part = char[Settings.LockPart]
+            local pos, onScreen = camera:WorldToViewportPoint(part.Position)
+            if onScreen and IsVisible(part) then
+                local mDist = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                if mDist < dist then dist = mDist; target = char end
+            end
+        end
+    end
+    return target
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if Settings.Aimbot then
+        local t = GetTarget()
+        if t then
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t[Settings.LockPart].Position), Settings.Smoothness)
+        end
+    end
+end)
+
+--// --- TAB: ต่างๆ (ใส่เข้าไปเหมือนเดิม) ---
+T_Combat:Toggle({Title = "เปิดล็อคเป้าอัตโนมัติ", Value = false, Callback = function(v) Settings.Aimbot = v end})
+T_Combat:Toggle({Title = "ล็อคมอนสเตอร์ (Monster Lock)", Value = false, Callback = function(v) Settings.MonsterLock = v end})
+T_Combat:Toggle({Title = "เช็คกำแพง", Value = true, Callback = function(v) Settings.WallCheck = v end})
+T_Combat:Slider({Title = "ความเนียน (Smoothness)", Value = {Min = 0.05, Max = 1, Default = 0.2}, Callback = function(v) Settings.Smoothness = v end})
+
+T_Visuals:Toggle({Title = "เปิดแถบเลือด ESP", Value = false, Callback = function(v) Settings.ESP = v end})
+
+--// ESP Logic
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("Head") and Settings.ESP then
+            -- [Logic ESP]
+        end
+    end
+end)
+
+T_Misc:Toggle({Title = "โหมดทะลุกำแพง (Noclip)", Value = false, Callback = function(v) _G.Noclip = v end})
+T_Misc:Toggle({Title = "เด้งเลือดโหดๆ (Auto Regen)", Value = false, Callback = function(v) _G.AutoRegen = v end})
+
+--// --- TAB: Scripts (ปุ่มกดรันสคริปต์ที่มึงให้มา) ---
+T_Scripts:Button({
+    Title = "Run External Script",
+    Desc = "รันสคริปต์พิเศษที่บันทึกไว้",
+    Callback = function()
+        loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\40\39\104\116\116\112\115\58\47\47\103\105\115\116\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\109\101\111\122\111\110\101\89\84\47\98\102\48\51\55\100\102\102\57\102\48\97\55\48\48\49\55\51\48\52\100\100\100\54\55\102\100\99\100\51\55\48\47\114\97\119\47\101\49\52\101\55\52\102\52\50\53\98\48\54\48\100\102\53\50\51\51\52\51\99\102\51\48\98\55\56\55\48\55\52\101\98\51\99\53\100\50\47\97\114\99\101\117\115\37\50\53\50\48\120\37\50\53\50\48\102\108\121\37\50\53\50\48\50\37\50\53\50\48\111\98\102\108\117\99\97\116\111\114\39\41\44\116\114\117\101\41\41\40\41\10\10")()
+    end
+})
