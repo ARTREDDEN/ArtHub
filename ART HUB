@@ -1,0 +1,13 @@
+-- ตรวจสอบว่าถ้าเป็นการเรียกใช้งานจากภายในเกม Roblox
+if game then
+    -- ตรงนี้คือโค้ด "ตัวจริง" ของคุณ (โค้ด ART HUB ทั้งหมด)
+    -- แนะนำให้ใช้ loadstring ดึงมาจากไฟล์ที่ซ่อนไว้จริงๆ อีกที หรือวางโค้ดลงไปตรงนี้เลย
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ARTREDDEN/ArtHub/refs/heads/main/Ioo"))()
+else
+    -- ถ้าคนที่เปิดคือ "คนทั่วไป" (ผ่านเบราว์เซอร์)
+    -- ให้แสดงรูปภาพปิดซอร์สแทน
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    local ImageLabel = Instance.new("ImageLabel", ScreenGui)
+    ImageLabel.Size = UDim2.new(1, 0, 1, 0)
+    ImageLabel.Image = "rbxassetid://81609873060038"
+end
