@@ -1,0 +1,7 @@
+local status = "Active" -- ถ้าเปลี่ยนเป็น "Locked" ก็จะเปลี่ยนเป็นปิดซอร์ส
+
+if status == "Active" then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ARTREDDEN/ArtHub/refs/heads/main/Ioo"))()
+else
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ARTREDDEN/ArtHub/refs/heads/main/Cccc"))()
+end
