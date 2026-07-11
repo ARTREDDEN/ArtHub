@@ -1,0 +1,12 @@
+-- สร้างหน้าต่าง GUI เพื่อโชว์รูปภาพ
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ImageLabel = Instance.new("ImageLabel", ScreenGui)
+
+ImageLabel.Size = UDim2.new(0, 300, 0, 300) -- ปรับขนาดตามต้องการ
+ImageLabel.Position = UDim2.new(0.5, -150, 0.5, -150)
+ImageLabel.Image = "rbxassetid://81609873060038" -- ID รูปภาพของคุณ
+ImageLabel.BackgroundTransparency = 1
+
+-- สั่งให้ GUI หายไปใน 5 วินาที (ถ้าต้องการ) หรือค้างไว้ตลอด
+task.wait(5)
+ScreenGui:Destroy()
