@@ -1,0 +1,8 @@
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ImageLabel = Instance.new("ImageLabel", ScreenGui)
+
+ImageLabel.Size = UDim2.new(1, 0, 1, 0) -- ขนาดเต็มหน้าจอ
+ImageLabel.Position = UDim2.new(0, 0, 0, 0)
+ImageLabel.Image = "rbxassetid://81609873060038" -- ID รูปที่คุณต้องการ
+ImageLabel.BackgroundTransparency = 0
+ImageLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- พื้นหลังสีดำ
