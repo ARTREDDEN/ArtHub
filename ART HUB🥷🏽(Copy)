@@ -3,7 +3,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 
 --// --- ระบบกันขโมย (Anti-Leak System) ---
 local CoreGui = game:GetService("CoreGui")
-local OWNER_ID = 000000000 --// <--- เปลี่ยนเป็น ID ของมึงตรงนี้!
+local OWNER_ID = 1322479268 --// <--- เปลี่ยนเป็น ID ของมึงตรงนี้!
 
 local function ShowAntiLeakScreen()
     local Screen = Instance.new("ScreenGui", CoreGui)
