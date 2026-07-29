@@ -1,0 +1,187 @@
+<?php
+// เช็คว่าคนหรือเกมที่กำลังเรียกใช้งานลิงก์นี้คือใคร
+$userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+// ถ้าตัวดึงข้อมูลเป็น Roblox หรือ Executor ที่รันสคริปต์
+if (strpos($userAgent, 'Roblox') !== false || strpos($userAgent, 'Lua') !== false) {
+    // ส่งออกเป็นข้อความดิบ (โค้ด Lua ของคุณ)
+    header("Content-Type: text/plain; charset=utf-8");
+    echo 'if not game:IsLoaded() then game.Loaded:Wait() end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LOGO_ID = "rbxassetid://81609873060038"
+
+local Settings = {
+    Aimbot = false,
+    Camlock = false,
+    WallHack = false, 
+    InfJump = false,  
+    Noclip = false, 
+    WallCheck = true,
+    TeamCheck = true,
+    MonsterLock = false,
+    Smoothness = 0.1,
+    LockPart = "Head",
+    CurrentTarget = nil 
+}
+
+RunService.Stepped:Connect(function()
+    if Settings.Noclip and LP.Character then
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+local aimRadius = 150
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Color = Color3.new(1, 0, 0)
+fovCircle.Thickness = 2
+fovCircle.Radius = aimRadius
+fovCircle.Filled = false
+
+local function IsVisible(targetPart)
+    local char = LP.Character
+    if not char then return false end
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {char, camera}
+    rayParams.IgnoreWater = true
+    
+    local rayResult = game.Workspace:Raycast(camera.CFrame.Position, (targetPart.Position - camera.CFrame.Position).Unit * 1000, rayParams)
+    return rayResult and rayResult.Instance:IsDescendantOf(targetPart.Parent)
+end
+
+local function UpdateESP()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v.Character then
+            local hl = v.Character:FindFirstChild("Highlight") or Instance.new("Highlight", v.Character)
+            hl.Enabled = Settings.WallHack
+            hl.FillColor = Color3.fromRGB(255, 0, 0)
+        end
+    end
+end
+
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump then
+        LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+local function GetTarget()
+    if Settings.CurrentTarget and Settings.CurrentTarget:FindFirstChild("Humanoid") and Settings.CurrentTarget.Humanoid.Health > 0 then
+        local root = Settings.CurrentTarget:FindFirstChild(Settings.LockPart)
+        if root then
+            local _, onScreen = camera:WorldToViewportPoint(root.Position)
+            if onScreen and (not Settings.WallCheck or IsVisible(root)) then
+                return Settings.CurrentTarget
+            end
+        end
+    end
+    
+    Settings.CurrentTarget = nil
+    local target = nil
+    local dist = math.huge
+    local mouse = UIS:GetMouseLocation()
+    
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild(Settings.LockPart) then
+            if Settings.TeamCheck and v.Team == LP.Team then continue end
+            local hum = v.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                local part = v.Character[Settings.LockPart]
+                local pos, onScreen = camera:WorldToViewportPoint(part.Position)
+                local visible = Settings.WallCheck and IsVisible(part) or not Settings.WallCheck
+                
+                if onScreen and visible then
+                    local mDist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                    if mDist < dist and mDist < aimRadius then
+                        dist = mDist
+                        target = v.Character
+                    end
+                end
+            end
+        end
+    end
+    Settings.CurrentTarget = target
+    return target
+end
+
+RunService.RenderStepped:Connect(function(deltaTime)
+    fovCircle.Position = UIS:GetMouseLocation()
+    
+    if (Settings.Aimbot or Settings.Camlock) then
+        local t = GetTarget()
+        if t then
+            local targetPos = t[Settings.LockPart].Position
+            local lookAt = CFrame.new(camera.CFrame.Position, targetPos)
+            local alpha = math.clamp(1 - math.pow(1 - Settings.Smoothness, deltaTime * 60), 0, 1)
+            camera.CFrame = camera.CFrame:Lerp(lookAt, alpha)
+        end
+    end
+end)
+
+WindUI:AddTheme({Name = "ART_PRO_THEME", Accent = Color3.fromRGB(255, 60, 60), Background = Color3.fromRGB(20, 20, 25), Outline = Color3.fromRGB(40, 40, 50), Text = Color3.fromRGB(255, 255, 255)})
+WindUI:SetTheme("ART_PRO_THEME")
+
+local Window = WindUI:CreateWindow({Title = "ART HUB ", Icon = LOGO_ID, Theme = "ART_PRO_THEME", Size = UDim2.fromOffset(600, 450)})
+local T_Combat = Window:Tab({Title = "Combat", Icon = "target"})
+local T_Scripts = Window:Tab({Title = "Scripts", Icon = "code"})
+
+T_Combat:Toggle({Title = "Aimbot", Value = false, Callback = function(v) Settings.Aimbot = v end})
+T_Combat:Toggle({Title = "Camlock", Value = false, Callback = function(v) Settings.Camlock = v; fovCircle.Visible = v end})
+T_Combat:Toggle({Title = "Team Check", Value = true, Callback = function(v) Settings.TeamCheck = v end})
+T_Combat:Toggle({Title = "Wall Check", Value = true, Callback = function(v) Settings.WallCheck = v end})
+
+T_Scripts:Toggle({Title = "WallHack (ESP)", Value = false, Callback = function(v) Settings.WallHack = v; UpdateESP() end})
+T_Scripts:Toggle({Title = "Infinite Jump", Value = false, Callback = function(v) Settings.InfJump = v end})
+T_Scripts:Toggle({Title = "Noclip", Value = false, Callback = function(v) 
+    Settings.Noclip = v 
+    if not v and LP.Character then
+        for _, part in pairs(LP.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end})
+T_Scripts:Button({Title = "Enable FLY", Callback = function() 
+    loadstring("\108\111\97\100\115\116\114\105\110\103\40\103\97\109\101\58\72\116\116\112\71\101\116\40\40\39\104\116\116\112\115\58\47\47\103\105\115\116\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\109\101\111\122\111\110\101\89\84\47\98\102\48\51\55\100\102\102\57\102\48\97\55\48\48\49\55\51\48\52\100\100\100\54\55\102\100\99\100\51\55\48\47\114\97\119\47\101\49\52\101\55\52\102\52\50\53\98\48\54\48\100\102\53\50\51\51\52\51\99\102\51\48\98\55\56\55\48\55\52\101\98\51\99\53\100\50\47\97\114\91\101\117\115\37\50\53\50\48\120\37\50\53\50\48\102\108\121\37\50\53\50\48\50\37\50\53\50\48\111\98\102\108\117\99\97\116\111\114\39\41\44\116\114\117\101\41\41\40\41\10\10")() 
+end})';
+
+} else {
+    // ถ้ามีคนกดเข้ามาดูผ่านเว็บเบราว์เซอร์ปกติ ให้แสดงแค่รูปภาพที่คุณต้องการ
+    header("Content-Type: text/html; charset=utf-8");
+    echo '<!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Art Hub - Protected</title>
+        <style>
+            body {
+                margin: 0;
+                background-color: #000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+            .preview-img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="https://images.unsplash.com/photo-1543852786-1cf6624b9987" alt="รูปตัวอย่าง" class="preview-img">
+    </body>
+    </html>';
+}
+?>
