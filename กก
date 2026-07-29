@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เว็บรวมโค้ดแมวเหมียว</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fff0f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.5);
+            text-align: center;
+        }
+
+        h2 {
+            color: #ff69b4;
+            margin-bottom: 15px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        /* รูปแมว */
+        .preview-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* กล่องโค้ด */
+        .code-box {
+            background: #1e1e1e;
+            color: #9cdcfe;
+            padding: 12px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+
+        /* ปุ่มคัดลอก */
+        button {
+            width: 100%;
+            margin-top: 12px;
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #ff1493;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🐱 โค้ดลับน้องแมวเหมียว</h2>
+
+        <div class="section">
+            <img src="https://images.unsplash.com/photo-1543852786-1cf6624b9987" alt="รูปแมวสุดน่ารัก" class="preview-img">
+        </div>
+
+        <div class="section">
+            <div class="code-box">
+                <pre><code id="codeToCopy">-- Meow Script 
+print("Meow! 🐾 ยินดีต้อนรับทาสแมวทุกคน")
+local catName = "MewMew"
+print("น้องแมวชื่อ: " .. catName)</code></pre>
+            </div>
+            
+            <button onclick="copyCode()">คัดลอกโค้ดแมว</button>
+        </div>
+    </div>
+
+    <script>
+        function copyCode() {
+            const codeText = document.getElementById("codeToCopy").innerText;
+
+            navigator.clipboard.writeText(codeText).then(() => {
+                alert("Meow! 🐾 คัดลอกโค้ดสำเร็จแล้ว!");
+            }).catch(err => {
+                console.error("เกิดข้อผิดพลาด: ", err);
+            });
+        }
+    </script>
+
+</body>
+</html>
