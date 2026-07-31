@@ -1,0 +1,261 @@
+--// Game Load Check
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+--// Logo Setup
+local LOGO_ID = "rbxassetid://81609873060038"
+
+--// System Settings (Art Hub Core)
+local Settings = {
+    MasterLoop = false,
+    ESP = false,
+    InfJump = false,
+    Noclip = false,
+    WalkSpeed = 16
+}
+
+--// Sound Effect System
+local SoundId = "rbxassetid://17566020304"
+
+local function PlayToggleSound()
+    pcall(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = SoundId
+        sound.Volume = 1
+        sound.Parent = game:GetService("SoundService")
+        sound:Play()
+        sound.Ended:Connect(function()
+            sound:Destroy()
+        end)
+    end)
+end
+
+--// Stable Noclip Loop
+RunService.Stepped:Connect(function()
+    if Settings.Noclip and LP.Character then
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if Settings.Noclip and LP.Character then
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+--// WalkSpeed Lock Loop
+RunService.RenderStepped:Connect(function()
+    if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+        if LP.Character.Humanoid.WalkSpeed ~= Settings.WalkSpeed then
+            LP.Character.Humanoid.WalkSpeed = Settings.WalkSpeed
+        end
+    end
+end)
+
+--// Infinite Jump Listener
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump and LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+--// Box ESP & Name Function
+local function CreateESP(plr)
+    task.spawn(function()
+        while task.wait(0.5) do
+            if plr == LP then break end
+            local char = plr.Character
+            
+            if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+                local highlight = char:FindFirstChild("ArtHub_BlueBox") or Instance.new("Highlight", char)
+                highlight.Name = "ArtHub_BlueBox"
+                highlight.Enabled = Settings.ESP
+                highlight.FillTransparency = 1 
+                highlight.OutlineColor = Color3.fromRGB(0, 120, 255) 
+                highlight.OutlineTransparency = 0 
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local bbg = head:FindFirstChild("ArtHub_NameUI") or Instance.new("BillboardGui", head)
+                    bbg.Name = "ArtHub_NameUI"
+                    bbg.Adornee = head
+                    bbg.Size = UDim2.new(0, 200, 0, 30)
+                    bbg.StudsOffset = Vector3.new(0, 2.5, 0)
+                    bbg.AlwaysOnTop = true
+                    bbg.Enabled = Settings.ESP
+
+                    local textLabel = bbg:FindFirstChild("PlayerName") or Instance.new("TextLabel", bbg)
+                    textLabel.Name = "PlayerName"
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.BackgroundTransparency = 1
+                    textLabel.Text = plr.Name
+                    textLabel.Font = Enum.Font.SourceSansBold
+                    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) 
+                    textLabel.TextSize = 18
+                    textLabel.TextStrokeTransparency = 0 
+                    textLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+                end
+            end
+
+            if not Settings.ESP and plr.Character then
+                if plr.Character:FindFirstChild("ArtHub_BlueBox") then
+                    plr.Character.ArtHub_BlueBox.Enabled = false
+                end
+                if plr.Character:FindFirstChild("Head") and plr.Character.Head:FindFirstChild("ArtHub_NameUI") then
+                    plr.Character.Head.ArtHub_NameUI.Enabled = false
+                end
+            end
+        end
+    end)
+end
+
+for _, player in pairs(Players:GetPlayers()) do CreateESP(player) end
+Players.PlayerAdded:Connect(CreateESP)
+
+--// UI Setup (WindUI Theme)
+WindUI:AddTheme({Name = "ART_PRO_THEME", Accent = Color3.fromRGB(255, 60, 60), Background = Color3.fromRGB(20, 20, 25), Outline = Color3.fromRGB(40, 40, 50), Text = Color3.fromRGB(255, 255, 255)})
+WindUI:SetTheme("ART_PRO_THEME")
+
+local Window = WindUI:CreateWindow({Title = "ART HUB V12", Icon = LOGO_ID, Theme = "ART_PRO_THEME", Size = UDim2.fromOffset(600, 450)})
+
+--// Create Tabs
+local T_Main = Window:Tab({Title = "Main Features", Icon = "home"})
+local T_Player = Window:Tab({Title = "Player Settings", Icon = "user"})
+local T_Visual = Window:Tab({Title = "Visuals / ESP", Icon = "eye"})
+local T_Credit = Window:Tab({Title = "Credits", Icon = "info"})
+
+--// Tab 1: Main Features
+T_Main:Button({
+    Title = "Teleport to Helicopter",
+    Callback = function()
+        PlayToggleSound()
+        local char = LP.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+            if v:IsA("Model") and (v.Name:lower():find("heli") or v.Name:lower():find("chopper")) then
+                local p = v:FindFirstChildWhichIsA("BasePart", true)
+                if p then
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    hrp.CFrame = p.CFrame * CFrame.new(0, 5, 0)
+                    break
+                end
+            end
+        end
+    end
+})
+
+T_Main:Toggle({
+    Title = "Auto Farm Loop",
+    Value = false,
+    Callback = function(state)
+        PlayToggleSound()
+        Settings.MasterLoop = state
+        if Settings.MasterLoop then
+            task.spawn(function()
+                while Settings.MasterLoop do
+                    pcall(function()
+                        local char = LP.Character
+                        local tool = char:FindFirstChildOfClass("Tool") or LP.Backpack:FindFirstChildOfClass("Tool")
+                        
+                        if tool and char:FindFirstChild("HumanoidRootPart") then
+                            if tool.Parent ~= char then tool.Parent = char end
+                            
+                            for _, player in pairs(Players:GetPlayers()) do
+                                if not Settings.MasterLoop then break end
+                                if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    local targetHRP = player.Character.HumanoidRootPart
+                                    local targetHum = player.Character:FindFirstChild("Humanoid")
+                                    
+                                    if targetHum and targetHum.Health > 0 then
+                                        char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                                        char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 0.2)
+                                        
+                                        for _, r in pairs(tool:GetDescendants()) do
+                                            if r:IsA("RemoteEvent") then r:FireServer(targetHum) end
+                                        end
+                                        
+                                        task.wait(2.5)
+                                        
+                                        local radius = 8
+                                        for i = 1, 10 do
+                                            if not Settings.MasterLoop then break end
+                                            local angle = i * (math.pi * 2 / 10)
+                                            char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                                            task.wait(0.03)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+--// Tab 2: Player Settings
+T_Player:Toggle({
+    Title = "Noclip",
+    Value = false,
+    Callback = function(state)
+        PlayToggleSound()
+        Settings.Noclip = state
+        if not state and LP.Character then
+            for _, part in pairs(LP.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end
+})
+
+T_Player:Toggle({
+    Title = "Infinite Jump",
+    Value = false,
+    Callback = function(state)
+        PlayToggleSound()
+        Settings.InfJump = state
+    end
+})
+
+T_Player:Slider({
+    Title = "WalkSpeed",
+    Value = {Min = 16, Max = 500, Default = 16},
+    Callback = function(value)
+        Settings.WalkSpeed = value
+    end
+})
+
+--// Tab 3: Visuals / ESP
+T_Visual:Toggle({
+    Title = "Player ESP (Blue Box + Name)",
+    Value = false,
+    Callback = function(state)
+        PlayToggleSound()
+        Settings.ESP = state
+    end
+})
+
+--// Tab 4: Credits
+T_Credit:Button({
+    Title = "ART HUB - WindUI Edition",
+    Callback = function()
+        PlayToggleSound()
+        print("Script executed successfully!")
+    end
+})
