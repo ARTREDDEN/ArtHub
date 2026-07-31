@@ -1,0 +1,285 @@
+-- [[ ART HUB V12 - RAYFIELD EDITION ]] --
+
+-- Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Create Main Window
+local Window = Rayfield:CreateWindow({
+   Name = "ART HUB V12",
+   LoadingTitle = "ART HUB Loading...",
+   LoadingSubtitle = "by Art",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil,
+      FileName = "ArtHubConfig"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvite",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Art Hub",
+      Subtitle = "Key System",
+      Note = "No key required",
+      FileName = "ArtHubKey",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"\x01"}
+   }
+})
+
+-- =================================================================
+-- [[ CORE LOGIC FUNCTIONS ]]
+-- =================================================================
+local Settings = {
+    MasterLoop = false,
+    ESP = false,
+    InfJump = false,
+    Noclip = false,
+    WalkSpeed = 16
+}
+
+local lp = game:GetService("Players").LocalPlayer
+
+-- Stable Noclip Loop
+game:GetService("RunService").Stepped:Connect(function()
+    if Settings.Noclip and lp.Character then
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end
+        end
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if Settings.Noclip and lp.Character then
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then 
+                v.CanCollide = false 
+            end
+        end
+    end
+end)
+
+-- WalkSpeed Lock Loop
+game:GetService("RunService").RenderStepped:Connect(function()
+    if lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        if lp.Character.Humanoid.WalkSpeed ~= Settings.WalkSpeed then
+            lp.Character.Humanoid.WalkSpeed = Settings.WalkSpeed
+        end
+    end
+end)
+
+-- Infinite Jump Listener
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if Settings.InfJump and lp.Character then
+        local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+-- Box ESP & Name Function
+local function CreateESP(plr)
+    task.spawn(function()
+        while task.wait(0.5) do
+            if plr == lp then break end
+            local char = plr.Character
+            
+            if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+                local highlight = char:FindFirstChild("ArtHub_BlueBox") or Instance.new("Highlight", char)
+                highlight.Name = "ArtHub_BlueBox"
+                highlight.Enabled = Settings.ESP
+                highlight.FillTransparency = 1 
+                highlight.OutlineColor = Color3.fromRGB(0, 120, 255) 
+                highlight.OutlineTransparency = 0 
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local bbg = head:FindFirstChild("ArtHub_NameUI") or Instance.new("BillboardGui", head)
+                    bbg.Name = "ArtHub_NameUI"
+                    bbg.Adornee = head
+                    bbg.Size = UDim2.new(0, 200, 0, 30)
+                    bbg.StudsOffset = Vector3.new(0, 2.5, 0)
+                    bbg.AlwaysOnTop = true
+                    bbg.Enabled = Settings.ESP
+
+                    local textLabel = bbg:FindFirstChild("PlayerName") or Instance.new("TextLabel", bbg)
+                    textLabel.Name = "PlayerName"
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.BackgroundTransparency = 1
+                    textLabel.Text = plr.Name
+                    textLabel.Font = Enum.Font.SourceSansBold
+                    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) 
+                    textLabel.TextSize = 18
+                    textLabel.TextStrokeTransparency = 0 
+                    textLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+                end
+            end
+
+            if not Settings.ESP and plr.Character then
+                if plr.Character:FindFirstChild("ArtHub_BlueBox") then
+                    plr.Character.ArtHub_BlueBox.Enabled = false
+                end
+                if plr.Character:FindFirstChild("Head") and plr.Character.Head:FindFirstChild("ArtHub_NameUI") then
+                    plr.Character.Head.ArtHub_NameUI.Enabled = false
+                end
+            end
+        end
+    end)
+end
+
+for _, player in pairs(game:GetService("Players"):GetPlayers()) do CreateESP(player) end
+game:GetService("Players").PlayerAdded:Connect(CreateESP)
+
+
+-- =================================================================
+-- [[ RAYFIELD TABS & ELEMENTS ]]
+-- =================================================================
+
+-- Create Tabs
+local MainTab = Window:CreateTab("Main Features", 4483362458)
+local PlayerTab = Window:CreateTab("Player Settings", 4483362458)
+local VisualTab = Window:CreateTab("Visuals / ESP", 4483362458)
+local CreditTab = Window:CreateTab("Credits", 4483362458)
+
+-- ==== Tab 1: Main Features ====
+MainTab:CreateButton({
+   Name = "Teleport to Helicopter",
+   Callback = function()
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+            if v:IsA("Model") and (v.Name:lower():find("heli") or v.Name:lower():find("chopper")) then
+                local p = v:FindFirstChildWhichIsA("BasePart", true)
+                if p then
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    hrp.CFrame = p.CFrame * CFrame.new(0, 5, 0)
+                    break
+                end
+            end
+        end
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Auto Farm Loop",
+   CurrentValue = false,
+   Flag = "AutoFarmToggle",
+   Callback = function(state)
+        Settings.MasterLoop = state
+        if Settings.MasterLoop then
+            task.spawn(function()
+                while Settings.MasterLoop do
+                    pcall(function()
+                        local char = lp.Character
+                        local tool = char:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool")
+                        
+                        if tool and char:FindFirstChild("HumanoidRootPart") then
+                            if tool.Parent ~= char then tool.Parent = char end
+                            
+                            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+                                if not Settings.MasterLoop then break end
+                                if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    local targetHRP = player.Character.HumanoidRootPart
+                                    local targetHum = player.Character:FindFirstChild("Humanoid")
+                                    
+                                    if targetHum and targetHum.Health > 0 then
+                                        char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                                        char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 0.2)
+                                        
+                                        for _, r in pairs(tool:GetDescendants()) do
+                                            if r:IsA("RemoteEvent") then r:FireServer(targetHum) end
+                                        end
+                                        
+                                        task.wait(2.5)
+                                        
+                                        local radius = 8
+                                        for i = 1, 10 do
+                                            if not Settings.MasterLoop then break end
+                                            local angle = i * (math.pi * 2 / 10)
+                                            char.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                                            task.wait(0.03)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.5)
+                end
+            end)
+        end
+   end,
+})
+
+
+-- ==== Tab 2: Player Settings ====
+PlayerTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(state)
+        Settings.Noclip = state
+   end,
+})
+
+PlayerTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Flag = "InfJumpToggle",
+   Callback = function(state)
+        Settings.InfJump = state
+   end,
+})
+
+PlayerTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 500},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "WalkSpeedSlider",
+   Callback = function(value)
+        Settings.WalkSpeed = value
+   end,
+})
+
+
+-- ==== Tab 3: Visuals / ESP ====
+VisualTab:CreateToggle({
+   Name = "Player ESP (Blue Box + Name)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(state)
+        Settings.ESP = state
+   end,
+})
+
+
+-- ==== Tab 4: Credits ====
+CreditTab:CreateButton({
+   Name = "ART HUB - Rayfield UI Edition",
+   Callback = function()
+        print("Script executed successfully!")
+        Rayfield:Notify({
+            Title = "ART HUB",
+            Content = "Script executed successfully!",
+            Duration = 3,
+            Image = 4483362458,
+        })
+   end,
+})
+
+-- Notification on load
+Rayfield:Notify({
+   Title = "ART HUB Loaded",
+   Content = "Successfully loaded Rayfield UI!",
+   Duration = 5,
+   Image = 4483362458,
+})
