@@ -1,0 +1,263 @@
+--// Game Load Check
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- โหลด Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+--// Main Window + Built-in Key System (Rayfield Standard)
+local Window = Rayfield:CreateWindow({
+    Name = "ART HUB | FPS EDITION",
+    LoadingTitle = "ART HUB is loading...",
+    LoadingSubtitle = "by ART8888",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ArtHub",
+        FileName = "Config"
+    },
+    KeySystem = true, -- เปิดใช้งานระบบใส่คีย์ในตัวของ Rayfield
+    KeySettings = {
+        Title = "ART HUB | Security Authentication",
+        Subtitle = "Key System Required",
+        Note = "Get your key from YouTube: ART8888-ART",
+        FileName = "ArtHubKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"ARTHUB KING10083727"} -- คีย์สำหรับเข้าใช้งาน
+    }
+})
+
+--// สร้าง Tabs
+local T_Combat = Window:CreateTab("Combat", "target")
+local T_Player = Window:CreateTab("Player", "user")
+local T_Visual = Window:CreateTab("Visuals", "eye")
+local T_Credits = Window:CreateTab("Credits", "info")
+
+--// Script Variables & Settings
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Settings = {
+    Camlock = false,
+    FOVSize = 150,
+    BrutalHitbox = false,
+    HitboxSize = 15,
+    HitboxHeight = 15,
+    InfJump = false,
+    JumpPower = 50,
+    Noclip = false,
+    WallCheck = true,
+    ESP_Box = false,
+    ESP_Name = false,
+    ESP_Tracers = false,
+    ESP_Chams = false
+}
+
+--// FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = false
+FOVCircle.Color = Color3.fromRGB(255, 60, 60)
+FOVCircle.Thickness = 2
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Radius = Settings.FOVSize
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end)
+
+--// WallCheck Function
+local function IsVisible(targetPart)
+    if not LP.Character or not LP.Character:FindFirstChild("Head") then return false end
+    local origin = LP.Character.Head.Position
+    local direction = targetPart.Position - origin
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LP.Character, Camera}
+    raycastParams.IgnoreWater = true
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    if result then
+        if result.Instance:IsDescendantOf(targetPart.Parent) then return true end
+        return false
+    end
+    return true
+end
+
+--// Get Closest Player
+local function GetClosestPlayer()
+    local target = nil
+    local shortestDist = Settings.FOVSize
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                local hrp = v.Character.HumanoidRootPart
+                if not Settings.WallCheck or IsVisible(hrp) then
+                    local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            target = hrp
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+--// Camlock Loop
+RunService.RenderStepped:Connect(function()
+    if Settings.Camlock then
+        FOVCircle.Visible = true
+        local targetHRP = GetClosestPlayer()
+        if targetHRP then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+        end
+    else
+        FOVCircle.Visible = false
+    end
+end)
+
+--// Brutal Hitbox Loop
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.BrutalHitbox then
+            for _, v in pairs(Players:GetPlayers()) do
+                if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = v.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(Settings.HitboxSize, Settings.HitboxHeight, Settings.HitboxSize)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Bright red")
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+--// Inf Jump & Noclip
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump and LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then 
+            hum.JumpPower = Settings.JumpPower
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum and not Settings.InfJump then hum.JumpPower = Settings.JumpPower end
+        if Settings.Noclip then
+            for _, v in pairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+    end
+end)
+
+--// ESP System
+local espCache = {}
+local function CreateESP(v)
+    if espCache[v] then return end
+    local espData = { Box = Drawing.new("Square"), Name = Drawing.new("Text"), Tracer = Drawing.new("Line") }
+    espData.Box.Visible = false; espData.Box.Thickness = 1.5; espData.Box.Color = Color3.fromRGB(0, 255, 255); espData.Box.Filled = false
+    espData.Name.Visible = false; espData.Name.Size = 14; espData.Name.Color = Color3.fromRGB(255, 255, 255); espData.Name.Center = true; espData.Name.Outline = true
+    espData.Tracer.Visible = false; espData.Tracer.Thickness = 1; espData.Tracer.Color = Color3.fromRGB(0, 255, 255)
+    espCache[v] = espData
+end
+
+local function RemoveESP(v)
+    if espCache[v] then
+        for _, obj in pairs(espCache[v]) do obj:Remove() end
+        espCache[v] = nil
+    end
+end
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+RunService.RenderStepped:Connect(function()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                if not espCache[v] then CreateESP(v) end
+                local data = espCache[v]
+                local hrp = v.Character.HumanoidRootPart
+                local highlight = v.Character:FindFirstChild("ArtHubChams") or Instance.new("Highlight", v.Character)
+                highlight.Name = "ArtHubChams"
+                highlight.Enabled = Settings.ESP_Chams
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local sizeX = 2000 / pos.Z
+                    local sizeY = 3000 / pos.Z
+                    data.Box.Visible = Settings.ESP_Box
+                    if Settings.ESP_Box then
+                        data.Box.Size = Vector2.new(sizeX, sizeY)
+                        data.Box.Position = Vector2.new(pos.X - sizeX / 2, pos.Y - sizeY / 2)
+                    end
+                    data.Name.Visible = Settings.ESP_Name
+                    if Settings.ESP_Name then
+                        data.Name.Text = v.Name
+                        data.Name.Position = Vector2.new(pos.X, pos.Y - sizeY / 2 - 18)
+                    end
+                    data.Tracer.Visible = Settings.ESP_Tracers
+                    if Settings.ESP_Tracers then
+                        data.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        data.Tracer.To = Vector2.new(pos.X, pos.Y + sizeY / 2)
+                    end
+                else
+                    data.Box.Visible = false; data.Name.Visible = false; data.Tracer.Visible = false
+                end
+            else RemoveESP(v) end
+        else RemoveESP(v) end
+    end
+end)
+
+--// UI Elements (Combat Tab)
+T_Combat:CreateToggle({Name = "Bot Camlock", CurrentValue = false, Flag = "Camlock", Callback = function(v) Settings.Camlock = v end})
+T_Combat:CreateSlider({Name = "FOV Center Size", Range = {50, 400}, Increment = 5, CurrentValue = 150, Flag = "FOVSize", Callback = function(v) Settings.FOVSize = v end})
+T_Combat:CreateToggle({Name = "Wall Check", CurrentValue = true, Flag = "WallCheck", Callback = function(v) Settings.WallCheck = v end})
+T_Combat:CreateToggle({Name = "Brutal Hitbox", CurrentValue = false, Flag = "BrutalHitbox", Callback = function(v) Settings.BrutalHitbox = v end})
+T_Combat:CreateSlider({Name = "Hitbox Width/Length", Range = {5, 30}, Increment = 1, CurrentValue = 15, Flag = "HBWidth", Callback = function(v) Settings.HitboxSize = v end})
+T_Combat:CreateSlider({Name = "Hitbox Height (Vertical)", Range = {5, 50}, Increment = 1, CurrentValue = 15, Flag = "HBHeight", Callback = function(v) Settings.HitboxHeight = v end})
+
+--// UI Elements (Player Tab)
+T_Player:CreateToggle({Name = "Unlimited Jumps", CurrentValue = false, Flag = "InfJump", Callback = function(v) Settings.InfJump = v end})
+T_Player:CreateSlider({Name = "Jump Power", Range = {50, 300}, Increment = 5, CurrentValue = 50, Flag = "JPower", Callback = function(v) Settings.JumpPower = v end})
+T_Player:CreateToggle({Name = "Jump Through Walls (Noclip)", CurrentValue = false, Flag = "Noclip", Callback = function(v) 
+    Settings.Noclip = v 
+    if not v and LP.Character then
+        for _, part in pairs(LP.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end})
+T_Player:CreateButton({
+    Name = "Enable FLY", 
+    Callback = function() 
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+    end
+})
+
+--// UI Elements (Visuals Tab)
+T_Visual:CreateToggle({Name = "ESP Box", CurrentValue = false, Flag = "ESPBox", Callback = function(v) Settings.ESP_Box = v end})
+T_Visual:CreateToggle({Name = "ESP Name", CurrentValue = false, Flag = "ESPName", Callback = function(v) Settings.ESP_Name = v end})
+T_Visual:CreateToggle({Name = "ESP Tracers", CurrentValue = false, Flag = "ESPTracers", Callback = function(v) Settings.ESP_Tracers = v end})
+T_Visual:CreateToggle({Name = "ESP Chams", CurrentValue = false, Flag = "ESPChams", Callback = function(v) Settings.ESP_Chams = v end})
+
+--// UI Elements (Credits Tab)
+T_Credits:CreateSection("Developer Information")
+T_Credits:CreateParagraph({
+    Title = "ART HUB Created by",
+    Content = "Developer name: ART8888\nYouTube: https://www.youtube.com/@ART8888-ART"
+})
