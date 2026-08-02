@@ -1,0 +1,432 @@
+--// Game Load Check
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- โหลด Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+--// Main Window + Key System เชื่อมกับเว็บไซต์ของมึง
+local Window = Rayfield:CreateWindow({
+    Name = "ART HUB | FPS EDITION (22+ FUNCTIONS)",
+    LoadingTitle = "กำลังโหลด ART HUB / Loading ART HUB...",
+    LoadingSubtitle = "by ART8888",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ArtHub",
+        FileName = "Config"
+    },
+    KeySystem = true, -- เปิดใช้งานระบบใส่คีย์
+    KeySettings = {
+        Title = "ART HUB | ระบบใส่คีย์ / Key System",
+        Subtitle = "รับคีย์ได้จากเว็บไซต์ / Get your key from website",
+        Note = "1. กดลิงก์เพื่อไปหน้าเว็บ / Click link to website\n2. กดติดตาม YouTube แล้วสุ่มคีย์ / Sub YouTube & Get Key\n3. นำคีย์มากรอกที่นี่ / Enter key here",
+        FileName = "ArtHubWebKey",
+        SaveKey = true,
+        GrabKeyFromSite = true, -- ดึงคีย์จากลิงก์เว็บไซต์โดยตรง
+        Key = {
+            "https://ใส่ลิงก์เว็บไซต์ของมึงตรงนี้.com",
+            "ARTHUB-KING-99821",
+            "ARTHUB-VIP-77342",
+            "ARTHUB-PRO-55109",
+            "ARTHUB-GOD-88491",
+            "ARTHUB-FREEFIRE-1082"
+        }
+    }
+})
+
+--// สร้าง Tabs
+local T_Combat = Window:CreateTab("ต่อสู้ / Combat", "target")
+local T_Player = Window:CreateTab("ผู้เล่น / Player", "user")
+local T_Visual = Window:CreateTab("มองทะลุ / Visuals", "eye")
+local T_Admin = Window:CreateTab("แอดมิน / Admin Panel", "shield")
+local T_Credits = Window:CreateTab("เครดิต / Credits", "info")
+
+--// Script Variables & Settings
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+-- 👑 [ตั้งค่าแอดมิน]
+local AdminIDs = {
+    12345678, -- <--- ใส่ UserID ของมึงตรงนี้
+}
+
+local function IsAdmin()
+    for _, id in pairs(AdminIDs) do
+        if LP.UserId == id then return true end
+    end
+    if LP.Name == "ART8888" then return true end 
+    return false
+end
+
+local Settings = {
+    -- Combat
+    Camlock = false,
+    FOVSize = 150,
+    WallCheck = true,
+    
+    -- Player Hitbox
+    BrutalHitbox = false,
+    PlayerHitboxWidth = 15,
+    PlayerHitboxHeight = 15,
+    
+    -- Bot Hitbox
+    BotHitbox = false,
+    BotHitboxWidth = 15,
+    BotHitboxHeight = 15,
+    
+    LockPlayerHead = false, 
+    LockNPCHead = false,
+    
+    -- Player
+    InfJump = false,
+    JumpPower = 50,
+    Noclip = false,
+    FlyActive = false,
+    SpeedHack = false,
+    WalkSpeed = 16,
+    InfiniteStamina = false,
+    
+    -- Visuals
+    ESP_Box = false,
+    ESP_Name = false,
+    ESP_Tracers = false,
+    ESP_Chams = false,
+    Fullbright = false,
+    FOVChanger = false,
+    CustomFOV = 70,
+    
+    -- Admin & Fun
+    GodMode = false,
+    Invisibility = false,
+    AutoFarmLoop = false
+}
+
+--// FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = false
+FOVCircle.Color = Color3.fromRGB(255, 60, 60)
+FOVCircle.Thickness = 2
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Radius = Settings.FOVSize
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end)
+
+--// WallCheck Function
+local function IsVisible(targetPart)
+    if not LP.Character or not LP.Character:FindFirstChild("Head") then return false end
+    local origin = LP.Character.Head.Position
+    local direction = targetPart.Position - origin
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LP.Character, Camera}
+    raycastParams.IgnoreWater = true
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    if result then
+        if result.Instance:IsDescendantOf(targetPart.Parent) then return true end
+        return false
+    end
+    return true
+end
+
+--// Get Closest Player
+local function GetClosestPlayer()
+    local target = nil
+    local shortestDist = Settings.FOVSize
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                local head = v.Character.Head
+                if not Settings.WallCheck or IsVisible(head) then
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            target = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+--// Get Closest NPC / Bot
+local function GetClosestNPC()
+    local target = nil
+    local shortestDist = Settings.FOVSize
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("Head") then
+            local isPlayer = false
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character == obj then
+                    isPlayer = true
+                    break
+                end
+            end
+            
+            if not isPlayer and obj.Humanoid.Health > 0 then
+                local head = obj.Head
+                if not Settings.WallCheck or IsVisible(head) then
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            target = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+--// Camlock Loop & Head Lock Systems
+RunService.RenderStepped:Connect(function()
+    if Settings.Camlock or Settings.LockPlayerHead or Settings.LockNPCHead then
+        FOVCircle.Visible = true
+        local targetHead = nil
+        
+        if Settings.LockPlayerHead then
+            targetHead = GetClosestPlayer()
+        elseif Settings.LockNPCHead then
+            targetHead = GetClosestNPC()
+        elseif Settings.Camlock then
+            targetHead = GetClosestPlayer() or GetClosestNPC()
+        end
+        
+        if targetHead then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
+        end
+    else
+        FOVCircle.Visible = false
+    end
+end)
+
+--// Brutal Hitbox Loop (Player)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.BrutalHitbox then
+            for _, v in pairs(Players:GetPlayers()) do
+                if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = v.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(Settings.PlayerHitboxWidth, Settings.PlayerHitboxHeight, Settings.PlayerHitboxWidth)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Bright red")
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+--// Bot Hitbox Loop (NPC)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.BotHitbox then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+                    local isPlayer = false
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p.Character == obj then
+                            isPlayer = true
+                            break
+                        end
+                    end
+                    
+                    if not isPlayer and obj.Humanoid.Health > 0 then
+                        local hrp = obj.HumanoidRootPart
+                        hrp.Size = Vector3.new(Settings.BotHitboxWidth, Settings.BotHitboxHeight, Settings.BotHitboxWidth)
+                        hrp.Transparency = 0.7
+                        hrp.BrickColor = BrickColor.new("Bright blue")
+                        hrp.CanCollide = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+--// Inf Jump & Noclip & Speed Loops
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump and LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then 
+            hum.JumpPower = Settings.JumpPower
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum and not Settings.InfJump then hum.JumpPower = Settings.JumpPower end
+        if Settings.Noclip then
+            for _, v in pairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+        if Settings.SpeedHack and hum then
+            hum.WalkSpeed = Settings.WalkSpeed
+        end
+    end
+end)
+
+--// Fullbright & FOV Changer
+RunService.RenderStepped:Connect(function()
+    if Settings.Fullbright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    end
+    if Settings.FOVChanger then
+        Camera.FieldOfView = Settings.CustomFOV
+    end
+end)
+
+--// ESP System
+local espCache = {}
+local function CreateESP(v)
+    if espCache[v] then return end
+    local espData = { Box = Drawing.new("Square"), Name = Drawing.new("Text"), Tracer = Drawing.new("Line") }
+    espData.Box.Visible = false; espData.Box.Thickness = 1.5; espData.Box.Color = Color3.fromRGB(0, 255, 255); espData.Box.Filled = false
+    espData.Name.Visible = false; espData.Name.Size = 14; espData.Name.Color = Color3.fromRGB(255, 255, 255); espData.Name.Center = true; espData.Name.Outline = true
+    espData.Tracer.Visible = false; espData.Tracer.Thickness = 1; espData.Tracer.Color = Color3.fromRGB(0, 255, 255)
+    espCache[v] = espData
+end
+
+local function RemoveESP(v)
+    if espCache[v] then
+        for _, obj in pairs(espCache[v]) do obj:Remove() end
+        espCache[v] = nil
+    end
+end
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+RunService.RenderStepped:Connect(function()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                if not espCache[v] then CreateESP(v) end
+                local data = espCache[v]
+                local hrp = v.Character.HumanoidRootPart
+                local highlight = v.Character:FindFirstChild("ArtHubChams") or Instance.new("Highlight", v.Character)
+                highlight.Name = "ArtHubChams"
+                highlight.Enabled = Settings.ESP_Chams
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local sizeX = 2000 / pos.Z
+                    local sizeY = 3000 / pos.Z
+                    data.Box.Visible = Settings.ESP_Box
+                    if Settings.ESP_Box then
+                        data.Box.Size = Vector2.new(sizeX, sizeY)
+                        data.Box.Position = Vector2.new(pos.X - sizeX / 2, pos.Y - sizeY / 2)
+                    end
+                    data.Name.Visible = Settings.ESP_Name
+                    if Settings.ESP_Name then
+                        data.Name.Text = v.Name
+                        data.Name.Position = Vector2.new(pos.X, pos.Y - sizeY / 2 - 18)
+                    end
+                    data.Tracer.Visible = Settings.ESP_Tracers
+                    if Settings.ESP_Tracers then
+                        data.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        data.Tracer.To = Vector2.new(pos.X, pos.Y + sizeY / 2)
+                    end
+                else
+                    data.Box.Visible = false; data.Name.Visible = false; data.Tracer.Visible = false
+                end
+            else RemoveESP(v) end
+        else RemoveESP(v) end
+    end
+end)
+
+--// UI Elements (Combat Tab)
+T_Combat:CreateToggle({Name = "1. ล็อคมุมมองผู้เล่น / Bot Camlock", CurrentValue = false, Flag = "Camlock", Callback = function(v) Settings.Camlock = v end})
+T_Combat:CreateSlider({Name = "2. ขนาดวง FOV / FOV Center Size", Range = {50, 400}, Increment = 5, CurrentValue = 150, Flag = "FOVSize", Callback = function(v) Settings.FOVSize = v end})
+T_Combat:CreateToggle({Name = "3. เช็คกำแพง / Wall Check", CurrentValue = true, Flag ="WallCheck", Callback = function(v) Settings.WallCheck = v end})
+
+-- ส่วนปรับ Hitbox ผู้เล่น
+T_Combat:CreateToggle({Name = "4. ขยายฮิตบ็อกซ์ผู้เล่น / Brutal Hitbox (Player)", CurrentValue = false, Flag = "BrutalHitbox", Callback = function(v) Settings.BrutalHitbox = v end})
+T_Combat:CreateSlider({Name = "5. ความกว้างฮิตบ็อกซ์ผู้เล่น / Player HB Width", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "PHBWidth", Callback = function(v) Settings.PlayerHitboxWidth = v end})
+T_Combat:CreateSlider({Name = "6. ความสูงฮิตบ็อกซ์ผู้เล่น / Player HB Height", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "PHBHeight", Callback = function(v) Settings.PlayerHitboxHeight = v end})
+
+-- ส่วนปรับ Hitbox บอท
+T_Combat:CreateToggle({Name = "7. ขยายฮิตบ็อกซ์บอท / Bot Hitbox (NPC)", CurrentValue = false, Flag = "BotHitboxTgl", Callback = function(v) Settings.BotHitbox = v end})
+T_Combat:CreateSlider({Name = "8. ความกว้างฮิตบ็อกซ์บอท / Bot HB Width", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "BHBWidth", Callback = function(v) Settings.BotHitboxWidth = v end})
+T_Combat:CreateSlider({Name = "9. ความสูงฮิตบ็อกซ์บอท / Bot HB Height", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "BHBHeight", Callback = function(v) Settings.BotHitboxHeight = v end})
+
+-- ระบบล็อคหัว
+T_Combat:CreateToggle({Name = "10. ล็อคหัวผู้เล่น / Lock Player Head", CurrentValue = false, Flag = "LockPlayerHead", Callback = function(v) Settings.LockPlayerHead = v end})
+T_Combat:CreateToggle({Name = "11. ล็อคหัวบอท / Lock NPC Head", CurrentValue = false, Flag = "LockNPCHead", Callback = function(v) Settings.LockNPCHead = v end})
+
+--// UI Elements (Player Tab)
+T_Player:CreateToggle({Name = "กระโดดไม่จำกัด / Unlimited Jumps", CurrentValue = false, Flag = "InfJump", Callback = function(v) Settings.InfJump = v end})
+T_Player:CreateSlider({Name = "พลังกระโดด / Jump Power", Range = {50, 300}, Increment = 5, CurrentValue = 50, Flag = "JPower", Callback = function(v) Settings.JumpPower = v end})
+T_Player:CreateToggle({Name = "เดินทะลุกำแพง / Noclip", CurrentValue = false, Flag = "Noclip", Callback = function(v) 
+    Settings.Noclip = v 
+    if not v and LP.Character then
+        for _, part in pairs(LP.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end})
+T_Player:CreateButton({
+    Name = "เปิดเมนูบิน / Enable FLY GUI", 
+    Callback = function() 
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+    end
+})
+T_Player:CreateToggle({Name = "เปิดสปีดแฮ็ค / Enable SpeedHack", CurrentValue = false, Flag = "SpeedTgl", Callback = function(v) Settings.SpeedHack = v end})
+T_Player:CreateSlider({Name = "ความเร็วเดิน / Custom WalkSpeed", Range = {16, 200}, Increment = 5, CurrentValue = 16, Flag = "SpdVal", Callback = function(v) Settings.WalkSpeed = v end})
+
+--// UI Elements (Visuals Tab)
+T_Visual:CreateToggle({Name = "กรอบมองทะลุ / ESP Box", CurrentValue = false, Flag = "ESPBox", Callback = function(v) Settings.ESP_Box = v end})
+T_Visual:CreateToggle({Name = "ชื่อมองทะลุ / ESP Name", CurrentValue = false, Flag = "ESPName", Callback = function(v) Settings.ESP_Name = v end})
+T_Visual:CreateToggle({Name = "เส้นลากไปหา / ESP Tracers", CurrentValue = false, Flag = "ESPTracers", Callback = function(v) Settings.ESP_Tracers = v end})
+T_Visual:CreateToggle({Name = "ไฮไลท์ตัวละคร / ESP Chams (Highlight)", CurrentValue = false, Flag = "ESPChams", Callback = function(v) Settings.ESP_Chams = v end})
+T_Visual:CreateToggle({Name = "สว่างตาแตก / Fullbright", CurrentValue = false, Flag = "FBright", Callback = function(v) Settings.Fullbright = v end})
+T_Visual:CreateToggle({Name = "ปรับมุมมอง FOV / Custom FOV Changer", CurrentValue = false, Flag = "FOVChg", Callback = function(v) Settings.FOVChanger = v end})
+
+--// UI Elements (Admin Panel Tab)
+T_Admin:CreateSection("Admin Master Panel / แผงควบคุมแอดมิน")
+T_Admin:CreateButton({
+    Name = "ย้ายเซิร์ฟหนีเกรียน / Server Hop", 
+    Callback = function()
+        if IsAdmin() then
+            local Servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+            for _, s in pairs(Servers.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                    break
+                end
+            end
+        else
+            Rayfield:Notify({Title = "Access Denied / ปฏิเสธการเข้าถึง", Content = "คุณไม่ใช่แอดมิน / You are not an admin!", Duration = 3})
+        end
+    end
+})
+
+--// UI Elements (Credits Tab)
+T_Credits:CreateSection("Developer Information / ข้อมูลผู้พัฒนา")
+T_Credits:CreateParagraph({
+    Title = "ART HUB Created by",
+    Content = "ผู้พัฒนา / Developer name: ART8888\nช่องยูทูป / YouTube: https://www.youtube.com/@ART8888-ART"
+})
