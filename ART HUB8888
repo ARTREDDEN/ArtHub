@@ -1,0 +1,260 @@
+--// Game Load Check
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- โหลด Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+--// Main Window + Key System (Delta X Safe Edition)
+local Window = Rayfield:CreateWindow({
+    Name = "ART HUB | DELTA X SAFE EDITION",
+    LoadingTitle = "ART HUB is loading...",
+    LoadingSubtitle = "by ART8888",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ArtHubDelta",
+        FileName = "Config"
+    },
+    KeySystem = true, -- เปิดใช้งานระบบใส่คีย์
+    KeySettings = {
+        Title = "ART HUB | Key System",
+        Subtitle = "Get your key from website",
+        Note = "1. กดลิงก์เพื่อไปหน้าเว็บ\n2. กดติดตาม YouTube แล้วสุ่มคีย์\n3. นำคีย์มากรอกที่นี่",
+        FileName = "ArtHubWebKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {
+            "ARTHUB-KING-99821",
+            "ARTHUB-VIP-77342",
+            "ARTHUB-PRO-55109",
+            "ARTHUB-GOD-88491",
+            "ARTHUB-FREEFIRE-1082"
+        }
+    }
+})
+
+--// สร้าง Tabs (เอา Admin Panel ออกตามที่ขอ)
+local T_Combat = Window:CreateTab("Combat", "target")
+local T_Player = Window:CreateTab("Player", "user")
+local T_Visual = Window:CreateTab("Visuals", "eye")
+local T_Credits = Window:CreateTab("Credits", "info")
+
+--// Script Variables & Settings
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+local Settings = {
+    -- Combat
+    Camlock = false,
+    FOVSize = 150,
+    BrutalHitbox = false,
+    HitboxSize = 15,
+    HitboxHeight = 15,
+    TriggerBot = false,
+    SilentAim = false,
+    BotHitbox = false,
+    BotHitboxSize = 15,
+    
+    -- Player
+    InfJump = false,
+    JumpPower = 50,
+    Noclip = false,
+    SpeedHack = false,
+    WalkSpeed = 16,
+    
+    -- Visuals
+    ESP_Chams = false,
+    Fullbright = false,
+    FOVChanger = false,
+    CustomFOV = 70
+}
+
+--// Get Closest Player (Safe for Delta X)
+local function GetClosestPlayer()
+    local target = nil
+    local shortestDist = Settings.FOVSize
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                local hrp = v.Character.HumanoidRootPart
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        target = hrp
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+--// Camlock Loop
+RunService.RenderStepped:Connect(function()
+    if Settings.Camlock then
+        local targetHRP = GetClosestPlayer()
+        if targetHRP then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHRP.Position)
+        end
+    end
+end)
+
+--// Brutal Hitbox Loop (ขยายผู้เล่น)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.BrutalHitbox then
+            for _, v in pairs(Players:GetPlayers()) do
+                if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = v.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(Settings.HitboxSize, Settings.HitboxHeight, Settings.HitboxSize)
+                    hrp.Transparency = 0.7
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+--// Bot / Monster Hitbox Loop (ขยายบอทในแมพ)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.BotHitbox then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= LP.Character then
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+                    local hrp = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
+                    if hum and hrp and not Players:GetPlayerFromCharacter(obj) then
+                        hrp.Size = Vector3.new(Settings.BotHitboxSize, Settings.BotHitboxSize, Settings.BotHitboxSize)
+                        hrp.Transparency = 0.7
+                        hrp.CanCollide = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+--// TriggerBot Mock
+task.spawn(function()
+    while task.wait(0.1) do
+        if Settings.TriggerBot then
+            local target = GetClosestPlayer()
+            if target and mouse1click then
+                mouse1click()
+            end
+        end
+    end
+end)
+
+--// Inf Jump & Noclip & Speed Loops
+UIS.JumpRequest:Connect(function()
+    if Settings.InfJump and LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then 
+            hum.JumpPower = Settings.JumpPower
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if LP.Character then
+        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum and not Settings.InfJump then hum.JumpPower = Settings.JumpPower end
+        if Settings.Noclip then
+            for _, v in pairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+        if Settings.SpeedHack and hum then
+            hum.WalkSpeed = Settings.WalkSpeed
+        end
+    end
+end)
+
+--// Fullbright & FOV Changer
+RunService.RenderStepped:Connect(function()
+    if Settings.Fullbright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    end
+    if Settings.FOVChanger then
+        Camera.FieldOfView = Settings.CustomFOV
+    end
+end)
+
+--// ESP Chams System (ใช้ Highlight แทน Drawing รองรับ Delta X 100%)
+task.spawn(function()
+    while task.wait(1) do
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LP and v.Character then
+                local highlight = v.Character:FindFirstChild("ArtHubChams")
+                if Settings.ESP_Chams then
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "ArtHubChams"
+                        highlight.Parent = v.Character
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    end
+                    highlight.Enabled = true
+                else
+                    if highlight then
+                        highlight.Enabled = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+--// UI Elements (Combat Tab)
+T_Combat:CreateToggle({Name = "1. Bot Camlock", CurrentValue = false, Flag = "Camlock", Callback = function(v) Settings.Camlock = v end})
+T_Combat:CreateSlider({Name = "2. FOV Center Size", Range = {50, 400}, Increment = 5, CurrentValue = 150, Flag = "FOVSize", Callback = function(v) Settings.FOVSize = v end})
+T_Combat:CreateToggle({Name = "3. Brutal Hitbox (ผู้เล่น)", CurrentValue = false, Flag = "BrutalHitbox", Callback = function(v) Settings.BrutalHitbox = v end})
+T_Combat:CreateSlider({Name = "4. Hitbox Width/Length", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "HBWidth", Callback = function(v) Settings.HitboxSize = v end})
+T_Combat:CreateSlider({Name = "5. Hitbox Height (Vertical)", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "HBHeight", Callback = function(v) Settings.HitboxHeight = v end})
+T_Combat:CreateToggle({Name = "6. Bot Hitbox (มอนสเตอร์ในแมพ)", CurrentValue = false, Flag = "BotHitbox", Callback = function(v) Settings.BotHitbox = v end})
+T_Combat:CreateSlider({Name = "7. Bot Hitbox Size", Range = {5, 500}, Increment = 5, CurrentValue = 15, Flag = "BotHBSize", Callback = function(v) Settings.BotHitboxSize = v end})
+T_Combat:CreateToggle({Name = "8. Auto TriggerBot", CurrentValue = false, Flag = "TrigBot", Callback = function(v) Settings.TriggerBot = v end})
+
+--// UI Elements (Player Tab)
+T_Player:CreateToggle({Name = "9. Unlimited Jumps", CurrentValue = false, Flag = "InfJump", Callback = function(v) Settings.InfJump = v end})
+T_Player:CreateSlider({Name = "10. Jump Power", Range = {50, 300}, Increment = 5, CurrentValue = 50, Flag = "JPower", Callback = function(v) Settings.JumpPower = v end})
+T_Player:CreateToggle({Name = "11. Jump Through Walls (Noclip)", CurrentValue = false, Flag = "Noclip", Callback = function(v) 
+    Settings.Noclip = v 
+    if not v and LP.Character then
+        for _, part in pairs(LP.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end})
+T_Player:CreateButton({
+    Name = "12. Enable FLY GUI", 
+    Callback = function() 
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+    end
+})
+T_Player:CreateToggle({Name = "13. Enable SpeedHack", CurrentValue = false, Flag = "SpeedTgl", Callback = function(v) Settings.SpeedHack = v end})
+T_Player:CreateSlider({Name = "14. Custom WalkSpeed", Range = {16, 200}, Increment = 5, CurrentValue = 16, Flag = "SpdVal", Callback = function(v) Settings.WalkSpeed = v end})
+
+--// UI Elements (Visuals Tab)
+T_Visual:CreateToggle({Name = "15. ESP Chams (Highlight ทะลุกำแพง)", CurrentValue = false, Flag = "ESPChams", Callback = function(v) Settings.ESP_Chams = v end})
+T_Visual:CreateToggle({Name = "16. Fullbright (สว่างตาแตก)", CurrentValue = false, Flag = "FBright", Callback = function(v) Settings.Fullbright = v end})
+T_Visual:CreateToggle({Name = "17. Custom FOV Changer", CurrentValue = false, Flag = "FOVChg", Callback = function(v) Settings.FOVChanger = v end})
+T_Visual:CreateSlider({Name = "18. Custom FOV Value", Range = {70, 120}, Increment = 1, CurrentValue = 70, Flag = "CustomFOVVal", Callback = function(v) Settings.CustomFOV = v end})
+
+--// UI Elements (Credits Tab)
+T_Credits:CreateSection("Developer Information")
+T_Credits:CreateParagraph({
+    Title = "ART HUB Created by",
+    Content = "Developer name: ART8888\nYouTube: https://www.youtube.com/@ART8888-ART"
+})
